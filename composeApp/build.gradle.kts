@@ -41,6 +41,12 @@ val packagingJdkHome = javaToolchains.launcherFor {
     languageVersion.set(JavaLanguageVersion.of(21))
 }
 
+/**
+ * 安装包版本默认跟随项目配置，发布工作流可通过 `-PpackageVersion=...` 覆盖，
+ * 这样 Git tag 与最终生成的安装包文件名能保持一致。
+ */
+val desktopPackageVersion = providers.gradleProperty("packageVersion").orElse("1.0.0")
+
 
 compose.desktop {
     application {
@@ -50,7 +56,7 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "adb_tools"
-            packageVersion = "1.0.0"
+            packageVersion = desktopPackageVersion.get()
             windows {
                 menu = true
                 menuGroup = "Adb Tools"
