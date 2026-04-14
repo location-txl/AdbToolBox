@@ -1,7 +1,5 @@
 package com.location.adbtools
 
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlin.io.path.createTempDirectory
 import kotlin.io.path.writeText
 import kotlin.test.Test
@@ -66,10 +64,10 @@ class AppStateTest {
     fun `handle dropped apk files should update pending confirmation state`() {
         val apkPath = createTempDirectory("adbtools-drop").resolve("drag.apk")
         apkPath.writeText("fake apk")
-        val uiState = AppUiState()
-        val actions = AppActions(uiState, CoroutineScope(Dispatchers.Unconfined), null)
+        val viewModel = AdbToolsViewModel()
+        val uiState = viewModel.uiState
 
-        actions.handleDroppedApkFiles(listOf(apkPath.toString()))
+        viewModel.handleDroppedApkFiles(listOf(apkPath.toString()))
 
         val acceptedPath = uiState.pendingDroppedApkPath
         assertNotNull(acceptedPath)
@@ -82,13 +80,13 @@ class AppStateTest {
     fun `confirm dropped apk install should reuse install flow validation`() {
         val apkPath = createTempDirectory("adbtools-confirm").resolve("drag.apk")
         apkPath.writeText("fake apk")
-        val uiState = AppUiState().apply {
+        val viewModel = AdbToolsViewModel()
+        val uiState = viewModel.uiState.apply {
             pendingDroppedApkPath = apkPath.toFile().absolutePath
             isDropInstallConfirmVisible = true
         }
-        val actions = AppActions(uiState, CoroutineScope(Dispatchers.Unconfined), null)
 
-        actions.confirmDroppedApkInstall()
+        viewModel.confirmDroppedApkInstall()
 
         assertEquals(apkPath.toFile().absolutePath, uiState.apkPath)
         assertEquals("请先连接设备后再安装 APK", uiState.installStatusText)
@@ -98,14 +96,14 @@ class AppStateTest {
 
     @Test
     fun `dismiss dropped apk install should only close confirmation`() {
-        val uiState = AppUiState().apply {
+        val viewModel = AdbToolsViewModel()
+        val uiState = viewModel.uiState.apply {
             apkPath = "C:/tmp/demo.apk"
             pendingDroppedApkPath = apkPath
             isDropInstallConfirmVisible = true
         }
-        val actions = AppActions(uiState, CoroutineScope(Dispatchers.Unconfined), null)
 
-        actions.dismissDroppedApkInstall()
+        viewModel.dismissDroppedApkInstall()
 
         assertEquals("C:/tmp/demo.apk", uiState.apkPath)
         assertNull(uiState.pendingDroppedApkPath)
@@ -152,10 +150,10 @@ class AppStateTest {
 
     @Test
     fun `refresh remote directory should require connected device`() {
-        val uiState = AppUiState()
-        val actions = AppActions(uiState, CoroutineScope(Dispatchers.Unconfined), null)
+        val viewModel = AdbToolsViewModel()
+        val uiState = viewModel.uiState
 
-        actions.refreshRemoteDirectory()
+        viewModel.refreshRemoteDirectory()
 
         assertEquals("请先连接设备", uiState.statusText)
         assertEquals("请先连接设备后再浏览 /sdcard", uiState.fileBrowserStatusText)
@@ -171,13 +169,13 @@ class AppStateTest {
             type = RemoteFileType.Directory,
             isHidden = false,
         )
-        val uiState = AppUiState().apply {
+        val viewModel = AdbToolsViewModel()
+        val uiState = viewModel.uiState.apply {
             connectedDevices = listOf(device)
             currentSerial = device.serial
         }
-        val actions = AppActions(uiState, CoroutineScope(Dispatchers.Unconfined), null)
 
-        actions.requestDeleteRemoteEntry(targetEntry)
+        viewModel.requestDeleteRemoteEntry(targetEntry)
 
         assertEquals(targetEntry, uiState.pendingDeleteEntry)
     }

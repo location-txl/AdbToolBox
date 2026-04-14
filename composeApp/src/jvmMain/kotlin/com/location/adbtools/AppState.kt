@@ -1,17 +1,15 @@
 package com.location.adbtools
 
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.location.adbtools.adb.EmbeddedAdb
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.awt.Window
 import java.io.File
 
 /**
@@ -105,19 +103,15 @@ class AppUiState {
 }
 
 /**
- * 页面上的用户动作集合。
+ * 主页面 ViewModel。
  *
- * 这些动作负责修改 [AppUiState] 并调用 `EmbeddedAdb`，
- * 让 UI 组件只发出事件，不直接参与异步流程和状态流转。
+ * 这里集中管理桌面主页面的状态流转和 adb 异步调用，
+ * UI 只负责发事件和处理系统级文件选择框。
  */
-class AppActions(
-    /** 当前页面状态对象，会被动作直接修改。 */
-    private val uiState: AppUiState,
-    /** 页面级协程作用域，用于启动异步 adb 操作。 */
-    private val scope: CoroutineScope,
-    /** 当前桌面主窗口，用于保证系统弹框挂在正确父窗口下。 */
-    private val parentWindow: Window?,
-) {
+class AdbToolsViewModel : ViewModel() {
+
+    /** 当前页面状态对象，供 Compose 直接读取。 */
+    val uiState = AppUiState()
 
     /**
      * 更新设备地址输入值。
@@ -139,14 +133,14 @@ class AppActions(
     }
 
     /**
-     * 打开系统文件选择框并记录待安装的 APK。
+     * 记录用户挑选的 APK 文件。
+     *
+     * 文件选择框仍在 UI 层触发，避免 ViewModel 持有桌面窗口对象。
      */
-    fun selectApkFile() {
-        selectApkFile(parentWindow)?.let { selectedApkPath ->
-            uiState.apkPath = selectedApkPath
-            clearPendingDroppedApk()
-            uiState.installStatusText = "已选择 APK：${File(selectedApkPath).name}"
-        }
+    fun updateSelectedApkPath(selectedApkPath: String) {
+        uiState.apkPath = selectedApkPath
+        clearPendingDroppedApk()
+        uiState.installStatusText = "已选择 APK：${File(selectedApkPath).name}"
     }
 
     /**
@@ -198,7 +192,7 @@ class AppActions(
         uiState.isBusy = true
         uiState.busyAction = BusyAction.Connecting
         uiState.statusText = "正在连接设备..."
-        scope.launch {
+        viewModelScope.launch {
             val result = withContext(Dispatchers.IO) {
                 EmbeddedAdb.connect(trimmedEndpoint)
             }
@@ -237,7 +231,7 @@ class AppActions(
         uiState.isBusy = true
         uiState.busyAction = BusyAction.Disconnecting
         uiState.statusText = "正在断开设备..."
-        scope.launch {
+        viewModelScope.launch {
             val result = withContext(Dispatchers.IO) {
                 EmbeddedAdb.disconnect(serial)
             }
@@ -264,7 +258,7 @@ class AppActions(
         uiState.isBusy = true
         uiState.busyAction = BusyAction.Refreshing
         uiState.statusText = "正在刷新设备列表..."
-        scope.launch {
+        viewModelScope.launch {
             refreshDevicesInternal(
                 preferredSerial = uiState.currentSerial,
                 updateCommandOutput = true,
@@ -310,11 +304,11 @@ class AppActions(
     }
 
     /**
-     * 下载右键命中的文件或文件夹。
+     * 下载右键命中的文件或文件夹到指定本地目录。
      *
-     * 下载统一先让用户选择本地目录，避免为了单文件另存为再引入额外路径选择分支。
+     * 本地目录由 UI 先选好再传入，避免 ViewModel 直接依赖桌面窗口。
      */
-    fun downloadRemoteEntry(entry: RemoteFileEntry) {
+    fun downloadRemoteEntryToDirectory(entry: RemoteFileEntry, selectedDirectory: String?) {
         val serial = uiState.currentDevice?.serial
         if (serial.isNullOrEmpty()) {
             uiState.statusText = "请先连接设备"
@@ -322,7 +316,6 @@ class AppActions(
             return
         }
 
-        val selectedDirectory = selectDirectory(parentWindow)
         if (selectedDirectory.isNullOrBlank()) {
             uiState.fileBrowserStatusText = "已取消选择本地保存目录"
             return
@@ -334,14 +327,14 @@ class AppActions(
         uiState.pullProgressLog = "正在准备下载：${entry.name}"
         uiState.statusText = "正在下载：${entry.name}"
         uiState.fileBrowserStatusText = "正在下载到本地目录：$selectedDirectory"
-        scope.launch {
+        viewModelScope.launch {
             val result = withContext(Dispatchers.IO) {
                 EmbeddedAdb.pull(
                     serial = serial,
                     remotePath = entry.path,
                     localPath = selectedDirectory,
                     onProgress = { progress ->
-                        scope.launch {
+                        viewModelScope.launch {
                             uiState.pullProgressPercent =
                                 progress.percent ?: uiState.pullProgressPercent
                             uiState.pullProgressLog = appendTransferProgressLog(
@@ -373,11 +366,11 @@ class AppActions(
     }
 
     /**
-     * 向右键命中的位置上传本地文件。
+     * 向右键命中的位置上传用户已选中的本地文件。
      *
-     * 文件夹直接作为目标目录；如果点的是文件，则上传到该文件的父目录。
+     * 文件路径由 UI 层负责选择，ViewModel 只做校验和上传流程。
      */
-    fun uploadToRemoteEntry(entry: RemoteFileEntry) {
+    fun uploadSelectedLocalFiles(entry: RemoteFileEntry, filePaths: List<String>) {
         val serial = uiState.currentDevice?.serial
         if (serial.isNullOrEmpty()) {
             uiState.statusText = "请先连接设备"
@@ -385,7 +378,7 @@ class AppActions(
             return
         }
 
-        val validationResult = validateSelectedLocalFiles(selectLocalFiles(parentWindow))
+        val validationResult = validateSelectedLocalFiles(filePaths)
         if (validationResult.acceptedFilePaths.isEmpty()) {
             uiState.fileBrowserStatusText = validationResult.statusText
             return
@@ -399,7 +392,7 @@ class AppActions(
         uiState.pushProgressLog = "正在准备上传到：$targetDirectory"
         uiState.statusText = "正在上传文件..."
         uiState.fileBrowserStatusText = "目标目录：$targetDirectory"
-        scope.launch {
+        viewModelScope.launch {
             var lastResult: EmbeddedAdb.AdbCommandResult? = null
             var successCount = 0
             var failedFileName: String? = null
@@ -418,7 +411,7 @@ class AppActions(
                         localPath = filePath,
                         remotePath = targetDirectory,
                         onProgress = { progress ->
-                            scope.launch {
+                            viewModelScope.launch {
                                 uiState.pushProgressPercent =
                                     progress.percent ?: uiState.pushProgressPercent
                                 uiState.pushProgressLog = appendTransferProgressLog(
@@ -495,7 +488,7 @@ class AppActions(
         uiState.busyAction = BusyAction.Deleting
         uiState.statusText = "正在删除：${targetEntry.name}"
         uiState.fileBrowserStatusText = "正在删除：${targetEntry.path}"
-        scope.launch {
+        viewModelScope.launch {
             val result = withContext(Dispatchers.IO) {
                 EmbeddedAdb.deleteRemoteEntry(
                     serial = serial,
@@ -541,7 +534,7 @@ class AppActions(
         uiState.isBusy = true
         uiState.busyAction = BusyAction.Installing
         uiState.installStatusText = "正在安装 APK..."
-        scope.launch {
+        viewModelScope.launch {
             val result = withContext(Dispatchers.IO) {
                 EmbeddedAdb.installApk(
                     serial = serial,
@@ -618,7 +611,7 @@ class AppActions(
         uiState.busyAction = BusyAction.BrowsingFiles
         uiState.statusText = "正在读取目录：$normalizedTargetDirectory"
         uiState.fileBrowserStatusText = "正在加载：$normalizedTargetDirectory"
-        scope.launch {
+        viewModelScope.launch {
             refreshRemoteDirectoryInternal(
                 serial = serial,
                 directoryPath = normalizedTargetDirectory,
@@ -872,35 +865,6 @@ fun buildRemoteBrowserStatusText(entries: List<RemoteFileEntry>): String {
         if (hiddenCount > 0) {
             append("，隐藏项 $hiddenCount 个")
         }
-    }
-}
-
-/**
- * 记住页面状态对象。
- */
-@Composable
-fun rememberAppUiState(): AppUiState {
-    return remember { AppUiState() }
-}
-
-/**
- * 记住页面动作对象。
- *
- * 这里用最新的状态引用重新包装动作，避免页面重组后仍持有旧状态实例。
- *
- * @param uiState 当前页面状态。
- * @param scope 页面级协程作用域。
- * @param parentWindow 当前桌面主窗口；目录选择框会挂到这个窗口下。
- * @return 可直接绑定到 UI 事件的动作集合。
- */
-@Composable
-fun rememberAppActions(uiState: AppUiState, scope: CoroutineScope, parentWindow: Window?): AppActions {
-    return remember(uiState, scope, parentWindow) {
-        AppActions(
-            uiState = uiState,
-            scope = scope,
-            parentWindow = parentWindow,
-        )
     }
 }
 
