@@ -165,6 +165,13 @@ composeApp/src/jvmMain/resources/adb/
 
 ---
 
+## 构建与权限规则
+
+- 需要提权执行命令时，直接按提权流程处理，不要绕过。
+- 运行 Gradle 相关命令时，不要手动指定 GRADLE_USER_HOME，也不要额外注入 `GRADLE_USER_HOME`。
+
+---
+
 ## Git 规则
 
 除非用户明确要求，否则只允许执行只读 Git 命令：
