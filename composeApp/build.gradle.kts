@@ -61,7 +61,7 @@ val desktopPackageVersion = providers.gradleProperty("packageVersion").orElse("1
 
 compose.desktop {
     application {
-        mainClass = "com.location.adbtools.MainKt"
+        mainClass = "com.location.adbtools.app.MainKt"
         javaHome = packagingJdkHome.get().metadata.installationPath.asFile.absolutePath
 
         nativeDistributions {

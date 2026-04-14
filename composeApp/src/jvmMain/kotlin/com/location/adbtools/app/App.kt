@@ -1,4 +1,4 @@
-package com.location.adbtools
+package com.location.adbtools.app
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.draganddrop.dragAndDropTarget
@@ -38,6 +38,24 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.ui.NavDisplay
 import androidx.savedstate.serialization.SavedStateConfiguration
+import com.location.adbtools.app.home.AdbToolsViewModel
+import com.location.adbtools.app.home.AppUiEffect
+import com.location.adbtools.app.home.BusyAction
+import com.location.adbtools.app.home.CommandOutputSection
+import com.location.adbtools.desktop.canAcceptDroppedFiles
+import com.location.adbtools.desktop.extractDroppedFilePaths
+import com.location.adbtools.desktop.selectApkFile
+import com.location.adbtools.desktop.selectDirectory
+import com.location.adbtools.desktop.selectLocalFiles
+import com.location.adbtools.device.ConnectionSection
+import com.location.adbtools.device.CurrentStatusSection
+import com.location.adbtools.filebrowser.DeleteRemoteEntryConfirmDialog
+import com.location.adbtools.filebrowser.FileBrowserSection
+import com.location.adbtools.install.DropInstallConfirmDialog
+import com.location.adbtools.install.InstallApkSection
+import com.location.adbtools.install.InstallLoadingDialog
+import com.location.adbtools.transfer.PullLoadingDialog
+import com.location.adbtools.transfer.PushLoadingDialog
 import org.koin.compose.KoinApplication
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.dsl.koinConfiguration

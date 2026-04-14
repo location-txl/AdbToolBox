@@ -1,7 +1,9 @@
-package com.location.adbtools
+package com.location.adbtools.app.home
 
 import com.location.adbtools.adb.AdbGateway
 import com.location.adbtools.adb.EmbeddedAdb
+import com.location.adbtools.device.buildConnectedDevice
+import com.location.adbtools.filebrowser.remoteBrowserRootPath
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async

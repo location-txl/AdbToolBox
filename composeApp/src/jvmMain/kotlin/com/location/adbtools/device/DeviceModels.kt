@@ -1,4 +1,4 @@
-package com.location.adbtools
+package com.location.adbtools.device
 
 /**
  * 已连接设备的连接类型。

@@ -1,12 +1,12 @@
 package com.location.adbtools.adb
 
-import com.location.adbtools.ConnectedDevice
-import com.location.adbtools.RemoteFileEntry
-import com.location.adbtools.RemoteFileType
-import com.location.adbtools.buildConnectedDevice
-import com.location.adbtools.joinRemotePath
-import com.location.adbtools.normalizeRemotePath
-import com.location.adbtools.sortRemoteEntries
+import com.location.adbtools.device.ConnectedDevice
+import com.location.adbtools.device.buildConnectedDevice
+import com.location.adbtools.filebrowser.RemoteFileEntry
+import com.location.adbtools.filebrowser.RemoteFileType
+import com.location.adbtools.filebrowser.joinRemotePath
+import com.location.adbtools.filebrowser.normalizeRemotePath
+import com.location.adbtools.filebrowser.sortRemoteEntries
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.concurrent.CopyOnWriteArrayList

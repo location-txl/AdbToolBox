@@ -1,7 +1,8 @@
-package com.location.adbtools
+package com.location.adbtools.app
 
 import com.location.adbtools.adb.AdbGateway
 import com.location.adbtools.adb.EmbeddedAdbGateway
+import com.location.adbtools.app.home.AdbToolsViewModel
 import org.koin.compose.viewmodel.dsl.viewModel
 import org.koin.dsl.module
 

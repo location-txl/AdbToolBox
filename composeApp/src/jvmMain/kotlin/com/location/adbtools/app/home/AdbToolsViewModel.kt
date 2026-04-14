@@ -1,9 +1,25 @@
-package com.location.adbtools
+package com.location.adbtools.app.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.location.adbtools.adb.AdbGateway
 import com.location.adbtools.adb.EmbeddedAdb
+import com.location.adbtools.device.ConnectedDevice
+import com.location.adbtools.device.DeviceConnectionType
+import com.location.adbtools.device.buildConnectedDevice
+import com.location.adbtools.filebrowser.FileBrowserUiState
+import com.location.adbtools.filebrowser.RemoteFileEntry
+import com.location.adbtools.filebrowser.RemoteFileType
+import com.location.adbtools.filebrowser.buildRemoteBrowserStatusText
+import com.location.adbtools.filebrowser.normalizeRemotePath
+import com.location.adbtools.filebrowser.parentRemotePath
+import com.location.adbtools.filebrowser.remoteBrowserRootPath
+import com.location.adbtools.filebrowser.resolveUploadTargetDirectory
+import com.location.adbtools.install.InstallUiState
+import com.location.adbtools.install.validateDroppedApkFiles
+import com.location.adbtools.transfer.TransferUiState
+import com.location.adbtools.transfer.appendTransferProgressLog
+import com.location.adbtools.transfer.validateSelectedLocalFiles
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow

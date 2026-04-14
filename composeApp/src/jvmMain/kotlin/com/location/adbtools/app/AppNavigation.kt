@@ -1,4 +1,4 @@
-package com.location.adbtools
+package com.location.adbtools.app
 
 import androidx.navigation3.runtime.NavKey
 import kotlinx.serialization.Serializable
