@@ -20,6 +20,8 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -40,6 +42,7 @@ import org.koin.compose.KoinApplication
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.dsl.koinConfiguration
 import java.awt.Window
+import kotlinx.coroutines.flow.collect
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
 import kotlinx.serialization.modules.subclass
@@ -148,7 +151,7 @@ private fun rememberRootViewModelStoreOwner(): ViewModelStoreOwner {
 @Composable
 @OptIn(ExperimentalComposeUiApi::class)
 private fun AdbToolsHomeScreen(viewModel: AdbToolsViewModel, parentWindow: Window?) {
-    val uiState = viewModel.uiState
+    val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val dropTarget = remember(viewModel) {
         object : DragAndDropTarget {
@@ -164,14 +167,17 @@ private fun AdbToolsHomeScreen(viewModel: AdbToolsViewModel, parentWindow: Windo
         viewModel.refreshDevices()
     }
 
-    LaunchedEffect(uiState.snackbarMessage) {
-        val message = uiState.consumeSnackbarMessage() ?: return@LaunchedEffect
-        snackbarHostState.showSnackbar(message)
+    LaunchedEffect(viewModel) {
+        viewModel.effects.collect { effect ->
+            when (effect) {
+                is AppUiEffect.ShowSnackbar -> snackbarHostState.showSnackbar(effect.message)
+            }
+        }
     }
 
     val installHint = when {
-        uiState.isConnected && uiState.apkPath.isBlank() -> "请选择或拖入 APK 文件"
-        uiState.pendingDroppedApkPath != null -> "已接收拖入的 APK，确认后开始安装"
+        uiState.isConnected && uiState.install.apkPath.isBlank() -> "请选择或拖入 APK 文件"
+        uiState.install.pendingDroppedApkPath != null -> "已接收拖入的 APK，确认后开始安装"
         else -> null
     }
     val dragInstallHint = "可直接拖拽 APK 到窗口安装"
@@ -223,21 +229,21 @@ private fun AdbToolsHomeScreen(viewModel: AdbToolsViewModel, parentWindow: Windo
                     currentDevice = uiState.currentDevice,
                 )
                 InstallApkSection(
-                    apkPath = uiState.apkPath,
+                    apkPath = uiState.install.apkPath,
                     isBusy = uiState.isBusy,
                     isConnected = uiState.isConnected,
                     installHint = installHint,
                     dragInstallHint = dragInstallHint,
-                    installStatusText = uiState.installStatusText,
+                    installStatusText = uiState.install.statusText,
                     onSelectApkFile = {
                         selectApkFile(parentWindow)?.let(viewModel::updateSelectedApkPath)
                     },
                     onInstallApk = viewModel::installApk,
                 )
                 FileBrowserSection(
-                    currentRemoteDirectory = uiState.currentRemoteDirectory,
-                    remoteEntries = uiState.remoteEntries,
-                    fileBrowserStatusText = uiState.fileBrowserStatusText,
+                    currentRemoteDirectory = uiState.fileBrowser.currentRemoteDirectory,
+                    remoteEntries = uiState.fileBrowser.remoteEntries,
+                    fileBrowserStatusText = uiState.fileBrowser.statusText,
                     isBusy = uiState.isBusy,
                     isConnected = uiState.isConnected,
                     onNavigateUp = viewModel::navigateToParentRemoteDirectory,
@@ -269,26 +275,26 @@ private fun AdbToolsHomeScreen(viewModel: AdbToolsViewModel, parentWindow: Windo
 
             if (uiState.busyAction == BusyAction.Pulling) {
                 PullLoadingDialog(
-                    progressPercent = uiState.pullProgressPercent,
-                    progressLog = uiState.pullProgressLog,
+                    progressPercent = uiState.transfer.pullProgressPercent,
+                    progressLog = uiState.transfer.pullProgressLog,
                 )
             }
             if (uiState.busyAction == BusyAction.Installing) {
                 InstallLoadingDialog(
-                    apkPath = uiState.apkPath,
+                    apkPath = uiState.install.apkPath,
                     currentDevice = uiState.currentDevice,
                 )
             }
             if (uiState.busyAction == BusyAction.Pushing) {
                 PushLoadingDialog(
-                    currentFileName = uiState.pushCurrentFileName,
-                    progressPercent = uiState.pushProgressPercent,
-                    progressLog = uiState.pushProgressLog,
+                    currentFileName = uiState.transfer.pushCurrentFileName,
+                    progressPercent = uiState.transfer.pushProgressPercent,
+                    progressLog = uiState.transfer.pushProgressLog,
                 )
             }
 
-            val droppedApkPath = uiState.pendingDroppedApkPath
-            if (uiState.isDropInstallConfirmVisible && droppedApkPath != null) {
+            val droppedApkPath = uiState.install.pendingDroppedApkPath
+            if (uiState.install.isDropInstallConfirmVisible && droppedApkPath != null) {
                 DropInstallConfirmDialog(
                     apkPath = droppedApkPath,
                     currentDevice = uiState.currentDevice,
@@ -297,7 +303,7 @@ private fun AdbToolsHomeScreen(viewModel: AdbToolsViewModel, parentWindow: Windo
                 )
             }
 
-            val pendingDeleteEntry = uiState.pendingDeleteEntry
+            val pendingDeleteEntry = uiState.fileBrowser.pendingDeleteEntry
             if (pendingDeleteEntry != null) {
                 DeleteRemoteEntryConfirmDialog(
                     entry = pendingDeleteEntry,

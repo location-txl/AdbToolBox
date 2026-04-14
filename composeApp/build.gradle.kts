@@ -38,6 +38,10 @@ kotlin {
             implementation(libs.jna)
             implementation(libs.jna.platform)
         }
+        jvmTest.dependencies {
+            implementation(libs.kotlin.testJunit)
+            implementation(libs.kotlinx.coroutinesTest)
+        }
     }
 }
 

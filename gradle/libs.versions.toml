@@ -28,6 +28,7 @@ koin-compose = { module = "io.insert-koin:koin-compose", version.ref = "koin" }
 koin-composeViewmodel = { module = "io.insert-koin:koin-compose-viewmodel", version.ref = "koin" }
 kotlinx-serialization-core = { module = "org.jetbrains.kotlinx:kotlinx-serialization-core", version.ref = "kotlinx-serialization" }
 kotlinx-coroutinesSwing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing", version.ref = "kotlinx-coroutines" }
+kotlinx-coroutinesTest = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
 navigation3-runtime = { module = "androidx.navigation3:navigation3-runtime", version.ref = "navigation3" }
 navigation3-ui = { module = "org.jetbrains.androidx.navigation3:navigation3-ui", version.ref = "navigation3" }
 jna = { module = "net.java.dev.jna:jna", version.ref = "jna" }

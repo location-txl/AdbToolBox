@@ -1,6 +1,8 @@
 package com.location.adbtools
 
-import org.koin.core.module.dsl.viewModelOf
+import com.location.adbtools.adb.AdbGateway
+import com.location.adbtools.adb.EmbeddedAdbGateway
+import org.koin.compose.viewmodel.dsl.viewModel
 import org.koin.dsl.module
 
 /**
@@ -10,5 +12,10 @@ import org.koin.dsl.module
  * 避免为了未来扩展先拆一堆没有收益的模块。
  */
 val appModule = module {
-    viewModelOf(::AdbToolsViewModel)
+    single<AdbGateway> { EmbeddedAdbGateway() }
+    viewModel {
+        AdbToolsViewModel(
+            adbGateway = get(),
+        )
+    }
 }
