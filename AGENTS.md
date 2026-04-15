@@ -1,210 +1,35 @@
-# AGENTS.md
+# Repository Guidelines
 
-## 项目定位
+## 项目结构与模块组织
 
-这是一个 **Compose Multiplatform 桌面端项目**，目标是实现一个 **Adb Tools** 工具。
+这是一个 Kotlin Multiplatform 桌面应用，使用 Compose for Desktop，主模块是 `composeApp`。
 
-核心目标只有两个：
+- `composeApp/src/jvmMain/kotlin/com/location/adbtools`：JVM 桌面端源码。
+- `composeApp/src/jvmMain/resources`：运行时资源，包括 `adb/<platform>` 下的内置 ADB 文件。
+- `composeApp/src/jvmMain/composeResources`：Compose 管理的 UI 资源。
+- `composeApp/src/jvmTest/kotlin`：JVM 单元测试。
+- `gradle/libs.versions.toml`：依赖和 Gradle 插件版本。
+- `.github/workflows`：发布和 CI 自动化配置。
 
-1. 提供桌面端可用的 ADB 工具界面。
-2. 内置不同平台的 `adb` 二进制文件，并在运行时根据当前系统选择正确版本。
+代码按业务功能组织。相关状态、UI、弹窗和模型应就近放置，例如 `filebrowser/`、`install/`、`transfer/`、`audio/`。
 
-明确边界：
+## 构建、测试与本地开发命令
 
-- 只支持桌面端，不做 Android / iOS / Web。
-- 不为了“多平台框架完整性”引入无意义抽象。
-- 功能优先，先把“可运行、可定位、可调用 adb”做扎实。
+- `./gradlew :composeApp:run`：本地运行桌面应用。
+- `./gradlew :composeApp:jvmTest`：运行 JVM 单元测试。
+- `./gradlew :composeApp:check`：执行模块校验任务。
+- `./gradlew :composeApp:packageDmg`：构建 macOS 安装包。
+- `./gradlew :composeApp:packageMsi`：构建 Windows 安装包。
 
----
+原生安装包依赖包含 `jpackage` 的 JDK；当前构建配置使用 Java 21 toolchain。
 
-## 沟通与输出要求
+## 编码风格与命名约定
 
-- 与用户使用中文交流。
-- 每一步说明尽量简短，先说结论，再说动作。
-- 如果用户判断不合理，要直接指出，不要顺着错的前提继续做。
+使用 Kotlin 惯用写法，保持代码直接、清晰。优先按功能拆小文件，避免无收益的共享抽象。缩进使用 4 个空格；类和 Composable 使用 `PascalCase`；函数和属性使用 `camelCase`；只有真正的常量使用 `UPPER_SNAKE_CASE`。
 
----
+Composable UI 函数应按渲染内容命名，例如 `InstallSection`、`DeleteRemoteEntryConfirmDialog`。状态对象使用清晰名称，例如 `InstallState`、`TransferState`。
 
-## 开发原则
+新增公共类和重要 API 需要写 doc 注释。明显的私有辅助函数不要机械添加注释。
 
-### 简单优先
-
-- 反对过度工程化。
-- 小功能直接写清楚，不为了“设计感”拆出多层包装。
-- 如果一个抽象不能明显减少未来修改成本，就不要加。
-
-### 维护优先
-
-- 文件组织以“找得到、改得快”为核心。
-- 相关代码就近放置，按功能聚合，不按空泛层次拆碎。
-- 命名直接表达业务含义，避免 `managerFactoryHelper` 这类叠词式命名。
-
-### 桌面端优先
-
-- 所有实现默认围绕 JVM Desktop。
-- 能放在 `jvmMain` 的逻辑，不要为了“理论复用”硬塞进 `commonMain`。
-- 与操作系统、文件、进程、权限、二进制资源相关的逻辑，优先写在桌面侧。
-
----
-
-## 代码组织约定
-
-推荐按功能拆分，而不是按教科书分层：
-
-```text
-composeApp/src/jvmMain/kotlin/com/location/adbtools/
-  app/                 # 应用入口、窗口、全局状态装配
-  device/              # 设备列表、连接状态、设备操作
-  adb/                 # adb 二进制定位、释放、命令执行
-  logcat/              # 日志查看
-  filetransfer/        # 文件推送/拉取
-  ui/                  # 通用但确实有复用价值的 UI 组件
-```
-
-规则：
-
-- 新功能优先建立独立功能目录。
-- UI、状态、业务逻辑如果只服务一个功能，放在同一目录下，不强行拆层。
-- 不要先做“通用基础设施”，除非已经出现真实复用。
-
----
-
-## ADB 资源约定
-
-内置 ADB 是项目核心，目录必须稳定、直观。
-
-建议资源结构：
-
-```text
-composeApp/src/jvmMain/resources/adb/
-  macos-aarch64/
-    adb
-  macos-x64/
-    adb
-  linux-x64/
-    adb
-  windows-x64/
-    adb.exe
-```
-
-约定：
-
-- 目录名使用 `os-arch` 形式，禁止随意缩写。
-- Windows 文件保留 `.exe`。
-- 如果后续需要 `fastboot`、`adbkey` 等，仍放在对应平台目录下。
-- 运行时只做“选择正确资源并释放到本地”这一层，不做复杂资源系统。
-
----
-
-## UI 开发约定
-
-- 桌面端布局优先考虑键鼠操作，不按移动端思路硬套。
-- 每个容器都要有存在理由，能少一层就少一层。
-- 类名、组件名以功能命名，不要出现空洞包装名。
-- 页面先保证信息结构清晰，再考虑样式细节。
-
-不建议：
-
-- 为一个简单页面拆出大量壳组件。
-- 为几个按钮单独建立复杂状态框架。
-- 用很重的导航、依赖注入、状态管理方案解决当前不存在的问题。
-
----
-
-## 注释要求
-
-### 必须写注释的内容
-
-- 每个新建的类、接口都要有 doc 风格注释，说明职责。
-- 重要成员变量要解释其业务意义。
-- 重要函数要有 doc 风格注释。
-- 复杂函数内部的关键步骤、边界处理、状态切换要补充注释。
-
-### 什么叫重要函数
-
-- 业务核心函数
-- 平台判断函数
-- adb 资源释放函数
-- 命令执行函数
-- 边界条件多的公共 API
-
-### 注释要求
-
-- 优先解释“为什么这样做”，不是机械复述代码。
-- 参数说明写清含义、范围、是否允许空值。
-- 返回值要说明状态意义或特殊值。
-- 有副作用就明确写出副作用。
-- 没有信息量的废话注释不要写。
-
----
-
-## 实现约束
-
-### 可以接受的实现
-
-- 直接、清晰的 `data class`
-- 小而明确的工具类
-- 面向当前需求的简单状态对象
-- 用标准库和现有依赖解决问题
-
-### 不接受的实现
-
-- 为未来可能用到的扩展点预留大量接口
-- 没有实际收益的 repository / usecase / factory 套娃
-- 一个功能拆成大量只有转发作用的文件
-- 只为了“架构好看”把桌面专属逻辑抽到共享层
-
----
-
-## 文件修改规则
-
-- 修改现有文件时，优先做小步、直接的改动。
-- 不做无关重构。
-- 不顺手清理与当前任务无关的代码，除非它已经构成阻碍。
-- 保持现有风格一致；如果现有风格明显有问题，再局部修正，并说明理由。
-
----
-
-## 构建与权限规则
-
-- 需要提权执行命令时，直接按提权流程处理，不要绕过。
-- 运行 Gradle 相关命令时，不要手动指定 GRADLE_USER_HOME，也不要额外注入 `GRADLE_USER_HOME`。
-
----
-
-## Git 规则
-
-除非用户明确要求，否则只允许执行只读 Git 命令：
-
-- `git status`
-- `git diff`
-- `git log`
-- `git show`
-- `git blame`
-
-禁止在未授权时执行以下操作：
-
-- `git commit`
-- `git reset`
-- `git checkout`
-- `git switch`
-- `git restore`
-- `git merge`
-- `git rebase`
-- `git cherry-pick`
-- `git push`
-- `git clean`
-- `git stash`
-
----
-
-## 决策优先级
-
-出现方案冲突时，按下面顺序决策：
-
-1. 是否满足“桌面端 ADB 工具”主目标
-2. 是否更简单、更容易维护
-3. 是否更容易定位问题和修改
-4. 是否真的比当前写法更清晰
-
-如果一个方案只是“更规范”，但没有带来明显收益，就不要选。
+## 严格遵守
+- 执行 任何 `./gradlew **` 命令时 必须提权执行, 严禁指定 `GRADLE_USER_HOME` 
