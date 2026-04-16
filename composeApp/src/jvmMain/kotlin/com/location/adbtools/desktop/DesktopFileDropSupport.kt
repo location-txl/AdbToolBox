@@ -1,4 +1,4 @@
-package com.location.adbtools
+package com.location.adbtools.desktop
 
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.draganddrop.DragAndDropEvent

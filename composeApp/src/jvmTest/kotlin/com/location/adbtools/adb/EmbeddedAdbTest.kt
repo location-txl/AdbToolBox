@@ -1,6 +1,8 @@
-package com.location.adbtools
+package com.location.adbtools.adb
 
-import com.location.adbtools.adb.EmbeddedAdb
+import com.location.adbtools.device.DeviceConnectionType
+import com.location.adbtools.device.buildConnectedDevice
+import com.location.adbtools.filebrowser.RemoteFileType
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse

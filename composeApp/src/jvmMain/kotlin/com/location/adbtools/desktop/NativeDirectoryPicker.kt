@@ -1,4 +1,4 @@
-package com.location.adbtools
+package com.location.adbtools.desktop
 
 import com.sun.jna.Native
 import com.sun.jna.Pointer

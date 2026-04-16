@@ -1,4 +1,4 @@
-package com.location.adbtools
+package com.location.adbtools.filebrowser
 
 /**
  * 设备文件浏览器固定使用的根目录。
